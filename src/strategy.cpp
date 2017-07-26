@@ -950,21 +950,21 @@ Strategy::getFormation( const WorldModel & wm ) const
 
 
 
-    if (  wm.gameMode().type() == GameMode::AfterGoal_&&wm.gameMode().side()==wm.ourSide()
-         )
-     {
-       if ( wm.time().stopped()<=20)
-       {
-        if (wm.ourSide()==LEFT)  return  M_D_L_formation;
-        else  return M_D_R_formation;
-       }
-
-       else if (wm.time().stopped()<=40)
-       {
-        if (wm.ourSide()==LEFT)  return  M_Y_L_formation;
-        else  return M_Y_R_formation;
-       }
-     }
+//     if (  wm.gameMode().type() == GameMode::AfterGoal_&&wm.gameMode().side()==wm.ourSide()
+//          )
+//      {
+//        if ( wm.time().stopped()<=20)
+//        {
+//         if (wm.ourSide()==LEFT)  return  M_D_L_formation;
+//         else  return M_D_R_formation;
+//        }
+// 
+//        else if (wm.time().stopped()<=40)
+//        {
+//         if (wm.ourSide()==LEFT)  return  M_Y_L_formation;
+//         else  return M_Y_R_formation;
+//        }
+//      }
 
     //
     // before kick off

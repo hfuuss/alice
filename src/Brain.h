@@ -59,9 +59,9 @@ private:
 
     bool  is_bed_pass( const ActionStatePair  path );
 
-    double decesion_tree( const ActionStatePair  path );
-    double less36_decesion_tree( const ActionStatePair  path );
-    double over36_decesion_tree( const ActionStatePair  path );
+    double decesion_tree(const PredictState & state, const ActionStatePair  path );
+    double less36_decesion_tree(const PredictState & state, const ActionStatePair  path );
+    double over36_decesion_tree(const PredictState & state, const ActionStatePair  path );
 //    double evaluate_dribble( const PredictState & state,const ActionStatePair path );
 //    double evaluate_pass( const PredictState & state,const ActionStatePair path );
 //    double evaluate_hold( const PredictState & state,const ActionStatePair path );

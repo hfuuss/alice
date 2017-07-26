@@ -83,12 +83,21 @@ Brain::operator()( const PredictState & state,
     }
 
     int count=0;
+    
+    if (path[0].action().category()==CooperativeAction::Shoot) 
+    {
+      result+=10e+8;
+    }
+    else if (path.size()==2&&path[1].action().category()==CooperativeAction::Shoot)
+    {
+      result+=10e+5;
+    }
 
 
     for ( std::vector< ActionStatePair >::const_iterator it =path.begin(); it!=path.end(); it++)
     {
 
-          result+=decesion_tree((*it));
+          result+=decesion_tree(state,(*it));
           count++;
     }
 
@@ -218,22 +227,15 @@ Brain::evaluate_state( const PredictState & state )
 
 
 double
-Brain::decesion_tree( const ActionStatePair  path )
+Brain::decesion_tree( const PredictState & state,const ActionStatePair  path )
 {
 
 
     const CooperativeAction  &first_action =path.action();
-    const PredictState & state=path.state();
 
-    double basic_eva=evaluate_state(path.state());
+    double basic_eva=evaluate_state(state);
 
-    // 0根节点判断自己能不能射门
 
-    if (first_action.category()==CooperativeAction::Shoot)
-    {
-
-        return   basic_eva+10e+5;
-    }
 
 
     const Vector2D  targetBall=state.ball().pos();
@@ -261,12 +263,12 @@ Brain::decesion_tree( const ActionStatePair  path )
     if (currentBall.x<36.0)
     {
 
-        evaluation=less36_decesion_tree(path);
+        evaluation=less36_decesion_tree(state,path);
     }
     else
     {
 
-        evaluation=over36_decesion_tree(path);
+        evaluation=over36_decesion_tree(state,path);
     }
 
 
@@ -277,13 +279,11 @@ Brain::decesion_tree( const ActionStatePair  path )
 
 double
 
-Brain::less36_decesion_tree(const ActionStatePair path)
+Brain::less36_decesion_tree(const PredictState & state,const ActionStatePair path)
 {
 
     const CooperativeAction  &first_action =path.action();
-    const PredictState & state=path.state();
-
-    double basic_eva=evaluate_state(path.state());
+    double basic_eva=evaluate_state(state);
 
 
 
@@ -411,13 +411,12 @@ Brain::less36_decesion_tree(const ActionStatePair path)
 
 double
 
-Brain::over36_decesion_tree(const ActionStatePair path)
+Brain::over36_decesion_tree(const PredictState & state,const ActionStatePair path)
 {
 
     const CooperativeAction  &first_action =path.action();
-    const PredictState & state=path.state();
 
-    double basic_eva=evaluate_state(path.state());
+    double basic_eva=evaluate_state(state);
 
 
 
