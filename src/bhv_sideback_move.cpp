@@ -210,7 +210,37 @@ void Bhv_SideBack_Move::doNormalMove(PlayerAgent* agent)
     {
       homePos.x = me.x;
     }
+    const int num=wm.self().unum();
+    if( ball.x < -30.0 && ball.x > -40.0 && ball.absY() < 20.0 && opp_min < mate_min && opp_min < 4 && homePos.x > me.x &&
+       wm.ourDefenseLineX() < me.x - 1 ) // BUG darehaaaa! check it soon 2011 AmirZ
+   {
+     if( num == 2 )
+       homePos = rcsc::Vector2D(-46.0, -2.0);
+     if( num == 3 )
+       homePos = rcsc::Vector2D(-46.0, 2.0);
+     if( num == 4 )
+       homePos = rcsc::Vector2D(-46.0, -5.0);
+     if( num == 5 )
+       homePos = rcsc::Vector2D(-46.0, 5.0);
+       
+       
+//     homePos.x = me.x;
+     
+     const PlayerPtrCont & opps = wm.opponentsFromSelf();
+     const PlayerObject * nearestOpp =
+                ( opps.empty() ? static_cast< PlayerObject * >( 0 ) : opps.front() );
+     const Vector2D opp = ( nearestOpp ? nearestOpp->pos() :
+                                 Vector2D( -1000.0, 0.0 ) );
 
+     double oppDist = opp.dist(homePos);
+    
+     if( oppDist < 2.0 )
+     {
+//        homePos.x = opp.x - 0.5;
+       homePos.y = opp.y;
+     }
+     
+   }
     if ( dist_thr < 0.5 ) dist_thr = 0.5;
 
 
