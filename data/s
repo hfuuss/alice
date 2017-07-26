@@ -1,0 +1,18 @@
+#!/bin/sh
+
+SLEEP_TIME=0
+echo ">>>>>>>>>>>>>>>>>>>>>> Goalie: 1"
+./start 127.0.0.1 ./ 1 &
+sleep 2
+
+i=2
+while [ $i -le 11 ]; do
+    echo ">>>>>>>>>>>>>>>>>>>>>>  Player: $i"
+    ./start 127.0.0.1 ./ $i &
+    sleep $SLEEP_TIME
+    i=`expr $i + 1`
+done
+sleep 2
+
+echo ">>>>>>>>>>>>>>>>>>>>>>  Coach"
+./start 127.0.0.1 ./ 12 &

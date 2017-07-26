@@ -1,0 +1,43 @@
+#!/bin/sh
+
+HOST=$1
+BASEDIR=$2
+NUM=$3
+DIR=$(dirname $0)
+cd $DIR
+if [ -z "$LD_LIBRARY_PATH" ]
+then
+	LD_LIBRARY_PATH=.:.
+else
+	LD_LIBRARY_PATH=.:.:$LD_LIBRARY_PATH
+fi
+export LD_LIBRARY_PATH
+
+teamname="Alice"
+
+player="./Alice_Player"
+coach="./Alice_Coach"
+
+config="data/player.conf"
+config_dir="data/formations-dt"
+coach_config="data/coach.conf"
+
+opt="--player-config ${config} --config_dir ${config_dir}"
+opt="${opt} -h ${HOST} -t ${teamname}"
+
+coachopt="--coach-config ${coach_config}"
+coachopt="${coachopt} -h ${HOST} -t ${teamname}"
+
+cd $BASEDIR
+
+case $NUM in
+    1)
+        $player $opt -g
+        ;;
+    12)
+        $coach $coachopt
+        ;;
+    *)
+        $player $opt
+        ;;
+esac
