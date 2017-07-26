@@ -172,7 +172,16 @@ ShootGenerator::generate( const WorldModel & wm )
 
        const ServerParam & SP = ServerParam::i();
 
-       if ( wm.self().pos().dist2( SP.theirTeamGoalPos() ) > std::pow( 30.0, 2 ) )
+//        if ( wm.self().pos().dist2( SP.theirTeamGoalPos() ) > std::pow( 30.0, 2 ) )
+//        {
+//    #ifdef DEBUG_PRINT
+//            dlog.addText( Logger::SHOOT,
+//                          __FILE__": over shootable distance" );
+//    #endif
+//            return;
+//        }
+    if ( wm.gameMode().type()!=GameMode::PenaltyTaken_&&
+	 wm.self().pos().dist2( SP.theirTeamGoalPos() ) > std::pow( 30.0, 2 ) )
        {
    #ifdef DEBUG_PRINT
            dlog.addText( Logger::SHOOT,
@@ -180,7 +189,30 @@ ShootGenerator::generate( const WorldModel & wm )
    #endif
            return;
        }
-
+       
+   if ( wm.gameMode().type()==GameMode::PenaltyTaken_)
+	
+    {
+	 
+	 double  can_shoot_dist=35.0;
+	 const  AbstractPlayerObject * opp_goalie=wm.getOpponentGoalie();
+	 if (opp_goalie)
+	 {
+	   const Vector2D opp_pos=opp_goalie->pos();
+	   if (opp_pos.absX()<=35.0)  can_shoot_dist=40;
+	   
+	 }
+	 else 
+	 {
+	   can_shoot_dist=40.0;
+	 }
+	 
+	  if (wm.self().pos().dist2( SP.theirTeamGoalPos() ) > std::pow( can_shoot_dist, 2 ) )//点球时候远射计算
+	 {
+	     return;
+	 }
+	    
+    }
        M_first_ball_pos = ( wm.self().isKickable()
                             ? wm.ball().pos()
                             : wm.ball().pos() + wm.ball().vel() );

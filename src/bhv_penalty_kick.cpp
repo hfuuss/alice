@@ -60,7 +60,15 @@
 #include <rcsc/geom/ray_2d.h>
 #include <rcsc/soccer_math.h>
 #include <rcsc/math_util.h>
-
+#include "neck_default_intercept_neck.h"
+#include<rcsc/action/neck_turn_to_ball_or_scan.h>
+#include "neck_check_ball_owner.h"
+#include <rcsc/action/view_synch.h>
+#include "bhv_strict_check_shoot.h"
+#include "bhv_chain_action.h"
+#include "bhv_basic_offensive_kick.h"
+#include <rcsc/action/neck_turn_to_goalie_or_scan.h>
+#include "bhv_savior.h"
 using namespace rcsc;
 
 /*-------------------------------------------------------------------*/
@@ -358,7 +366,7 @@ Bhv_PenaltyKick::doKicker( PlayerAgent * agent )
             const PlayerObject * opp_goalie = agent->world().getOpponentGoalie();
             if ( opp_goalie )
             {
-                agent->setNeckAction( new Neck_TurnToPoint( opp_goalie->pos() ) );
+                agent->setNeckAction( new Neck_TurnToGoalieOrScan());
             }
             else
             {
@@ -369,27 +377,7 @@ Bhv_PenaltyKick::doKicker( PlayerAgent * agent )
         return true;
     }
 
-    if( wm.ball().pos().absX() < 14.0 && wm.self().unum() % 3 == 2 )
-    {
-        rcsc::Body_KickOneStep( rcsc::Vector2D(rcsc::sign(wm.ball().pos().x)*24.0,-12.0),
-                                1.15 ).execute( agent );
-        agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-        return true;
-    }
-    else if( wm.ball().pos().absX() < 14.0 && wm.self().unum() % 3 == 0 )
-    {
-        rcsc::Body_KickOneStep( rcsc::Vector2D(rcsc::sign(wm.ball().pos().x)*24.0,3.0),
-                                1.05 ).execute( agent );
-        agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-        return true;
-    }
-    else if( wm.ball().pos().absX() < 14.0 && wm.self().unum() % 3 == 1 )
-    {
-        rcsc::Body_KickOneStep( rcsc::Vector2D(rcsc::sign(wm.ball().pos().x)*24.0,12.0),
-                                1.15 ).execute( agent );
-        agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-        return true;
-    }
+    
 
     // kick decision
     if ( doShoot( agent ) )
@@ -397,7 +385,7 @@ Bhv_PenaltyKick::doKicker( PlayerAgent * agent )
         return true;
     }
 
-    return doDribble( agent );
+    return  doDribble(agent);
 }
 
 /*-------------------------------------------------------------------*/
@@ -485,200 +473,28 @@ Bhv_PenaltyKick::doShoot( PlayerAgent * agent )
     const WorldModel & wm = agent->world();
     const PenaltyKickState * state = wm.penaltyKickState();
 
-    Vector2D goalie = wm.getOpponentGoalie()->pos();
+    const PlayerObject * opp=wm.getOpponentGoalie();
+    Vector2D opp_pos=opp? opp->pos():Vector2D(sign(wm.ball().pos().x)*52.5,0);
+
+
     Vector2D me = wm.self().pos();
     Vector2D ball = wm.ball().pos();
     Vector2D goal(rcsc::sign(ball.x)*52.5,0.0);
-    
-     if( wm.getOpponentGoalie()->posCount() < 10 )
+
+
+    // fix  shoot generator dist ->50
+
+    if (Bhv_StrictCheckShoot().execute(agent))
      {
-      if( me.dist(goal) > goalie.dist(goal) && me.dist(goalie) > 3.5 ) 
-      {
-	std::cout<<"\n^^^^1^^^^ Cycle: "<<wm.time().cycle()<<" shoot returned false because too far and may fail\n";
-        return false;
-      }
-     }
-        
-    
-    if ( wm.time().cycle() - state->time().cycle() > ServerParam::i().penTakenWait() - 25 )
-    {
-        dlog.addText( Logger::TEAM,
-                      __FILE__" (doShoot) time limit. stateTime=%d spentTime=%d timeThr=%d force shoot.",
-                      state->time().cycle(),
-                      wm.time().cycle() - state->time().cycle(),
-                      ServerParam::i().penTakenWait() - 25 );
-        return doOneKickShoot( agent );
-    }
-
-    Vector2D shot_point;
-    double shot_speed;
-
-    if ( getShootTarget( agent, &shot_point, &shot_speed ) )
-    {
-      
-     if( wm.getOpponentGoalie()->posCount() < 10 )
-     {
-      if( me.dist(goal) > goalie.dist(goal) && me.dist(goalie) > 3.5 ) 
-      {
-	std::cout<<"\n^^^^3^^^^ Cycle: "<<wm.time().cycle()<<" shoot returned false because too far and may fail\n";
-        return false;
-      }
-     }
-      
-        dlog.addText( Logger::TEAM,
-                      __FILE__" (doShoot) shoot to (%.1f %.1f) speed=%f",
-                      shot_point.x, shot_point.y,
-                      shot_speed );
-
-        Body_SmartKick( shot_point,
-                        shot_speed,
-                        shot_speed * 0.96,
-                        2 ).execute( agent );
-        agent->setNeckAction( new Neck_TurnToPoint( shot_point ) );
+        std::cout<<"Strict Check shoot\n";
         return true;
-    }
+     }
+    
+
+
 
     return false;
-}
 
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-bool
-Bhv_PenaltyKick::getShootTarget( const PlayerAgent * agent,
-                                 Vector2D * point,
-                                 double * first_speed )
-{
-    const WorldModel & wm = agent->world();
-    const ServerParam & SP = ServerParam::i();
-
-    if ( SP.theirTeamGoalPos().dist2( wm.ball().pos() ) > std::pow( 35.0, 2 ) )
-    {
-        dlog.addText( Logger::TEAM,
-                      __FILE__" (getShootTarget) too far" );
-        return false;
-    }
-
-    const PlayerObject * opp_goalie = wm.getOpponentGoalie();
-
-    // goalie is not found.
-    if ( ! opp_goalie )
-    {
-        Vector2D shot_c = SP.theirTeamGoalPos();
-        if ( point ) *point = shot_c;
-        if ( first_speed ) *first_speed = SP.ballSpeedMax();
-
-        dlog.addText( Logger::TEAM,
-                      __FILE__" (getShootTarget) no goalie" );
-        return true;
-    }
-
-    int best_l_or_r = 0;
-    double best_speed = SP.ballSpeedMax() + 1.0;
-
-    double post_buf = 1.0
-        + std::min( 2.0,
-                    ( SP.pitchHalfLength() - wm.self().pos().absX() ) * 0.1 );
-
-    // consder only 2 angle
-    Vector2D shot_l( SP.pitchHalfLength(), -SP.goalHalfWidth() + post_buf );
-    Vector2D shot_r( SP.pitchHalfLength(), +SP.goalHalfWidth() - post_buf );
-
-    const AngleDeg angle_l = ( shot_l - wm.ball().pos() ).th();
-    const AngleDeg angle_r = ( shot_r - wm.ball().pos() ).th();
-
-    // !!! Magic Number !!!
-    const double goalie_max_speed = 1.0;
-    // default player speed max * conf decay
-    const double goalie_dist_buf
-        = goalie_max_speed * std::min( 5, opp_goalie->posCount() )
-        + SP.catchAreaLength()
-        + 0.2;
-
-    const Vector2D goalie_next_pos = opp_goalie->pos() + opp_goalie->vel();
-
-    for ( int i = 0; i < 2; i++ )
-    {
-        const Vector2D target = ( i == 0 ? shot_l : shot_r );
-        const AngleDeg angle = ( i == 0 ? angle_l : angle_r );
-
-        double dist2goal = wm.ball().pos().dist( target );
-
-        // set minimum speed to reach the goal line
-        double tmp_first_speed =  ( dist2goal + 5.0 ) * ( 1.0 - SP.ballDecay() );
-        tmp_first_speed = std::max( 1.2, tmp_first_speed );
-
-        bool over_max = false;
-        while ( ! over_max )
-        {
-            if ( tmp_first_speed > SP.ballSpeedMax() )
-            {
-                over_max = true;
-                tmp_first_speed = SP.ballSpeedMax();
-            }
-
-            Vector2D ball_pos = wm.ball().pos();
-            Vector2D ball_vel = Vector2D::polar2vector( tmp_first_speed, angle );
-            ball_pos += ball_vel;
-            ball_vel *= SP.ballDecay();
-
-            bool goalie_can_reach = false;
-
-            // goalie move at first step is ignored (cycle is set to ZERO),
-            // because goalie must look the ball velocity before chasing action.
-            double cycle = 0.0;
-            while ( ball_pos.absX() < SP.pitchHalfLength() )
-            {
-                if ( goalie_next_pos.dist( ball_pos )
-                     < goalie_max_speed * cycle + goalie_dist_buf )
-                {
-                    dlog.addText( Logger::TEAM,
-                                  __FILE__" (getShootTarget) goalie can reach. cycle=%.0f"
-                                  " target=(%.1f, %.1f) speed=%.1f",
-                                  cycle + 1.0, target.x, target.y, tmp_first_speed );
-                    goalie_can_reach = true;
-                    break;
-                }
-
-                ball_pos += ball_vel;
-                ball_vel *= SP.ballDecay();
-                cycle += 1.0;
-            }
-
-            if ( ! goalie_can_reach )
-            {
-                dlog.addText( Logger::TEAM,
-                              __FILE__" (getShootTarget) goalie never reach. target=(%.1f, %.1f) speed=%.1f",
-                              target.x, target.y,
-                              tmp_first_speed );
-                if ( tmp_first_speed < best_speed )
-                {
-                    best_l_or_r = i;
-                    best_speed = tmp_first_speed;
-                }
-                break; // end of this angle
-            }
-            tmp_first_speed += 0.4;
-        }
-    }
-
-
-    if ( best_speed <= SP.ballSpeedMax() )
-    {
-        if ( point )
-        {
-            *point = ( best_l_or_r == 0 ? shot_l : shot_r );
-        }
-        if ( first_speed )
-        {
-            *first_speed = best_speed;
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 /*-------------------------------------------------------------------*/
@@ -720,205 +536,24 @@ Bhv_PenaltyKick::doDribble( PlayerAgent * agent )
     double drib_power = ServerParam::i().maxDashPower();
     int drib_dashes = 6;
 
-    /////////////////////////////////////////////////
+
 
     Vector2D ball = wm.ball().pos();
-    Vector2D myTarget = Vector2D(sign(wm.ball().pos().x)*50.0, 20);
-    
-    if( wm.ball().pos().y < 0 )
-      myTarget = Vector2D(sign(ball.x)*50.0, -20);
-    
-    if( ball.x > 39 || ball.x < -39 )
-      myTarget = Vector2D(sign(ball.x)*40.0, 0);
-      
-    
+    Vector2D myTarget = Vector2D(sign(wm.ball().pos().x)*44.0, 0);
+
+  
+    if (ball.absX()<25)
+        myTarget = Vector2D(sign(ball.x)*34.0, sign(wm.ball().pos().y)*20);
+
+
+
+
     Body_Dribble( myTarget,
                   1.0,
                   ServerParam::i().maxDashPower(),
-                  4,
+                  3,
                   true
                   ).execute( agent );
-		  
-    if ( opp_goalie )
-    {
-        agent->setNeckAction( new Neck_TurnToPoint( opp_goalie->pos() ) );
-    }
-    else
-    {
-        agent->setNeckAction( new Neck_ScanField() );
-    }
-    return true;    
-    
-    
-    
-    
-    
-    // it's too far to the goal.
-    // dribble to the shootable area
-    if ( my_abs_x < penalty_abs_x - 3.0
-         && goalie_dist > 10.0 )
-    {
-        //drib_power *= 0.6;
-    }
-    else
-    {
-        if ( goalie_abs_x > my_abs_x )
-        {
-            if ( goalie_dist < 4.0 )
-            {
-                if ( S_target_continual_count == 1 )
-                {
-                    S_target_continual_count = -CONTINUAL_COUNT;
-                }
-                else if ( S_target_continual_count == -1 )
-                {
-                    S_target_continual_count = +CONTINUAL_COUNT;
-                }
-                else if ( S_target_continual_count > 0 )
-                {
-                    S_target_continual_count--;
-                }
-                else
-                {
-                    S_target_continual_count++;
-                }
-            }
-
-            if ( S_target_continual_count > 0 )
-            {
-                if ( agent->world().self().pos().y < -base_target_abs_y + 2.0 )
-                {
-                    drib_target.y = base_target_abs_y;
-                    dlog.addText( Logger::TEAM,
-                                  __FILE__": dribble(1). target=(%.1f, %.1f)",
-                                  drib_target.x, drib_target.y );
-                }
-                else
-                {
-                    drib_target.y = -base_target_abs_y;
-                    dlog.addText( Logger::TEAM,
-                                  __FILE__": dribble(2). target=(%.1f, %.1f)",
-                                  drib_target.x, drib_target.y );
-                }
-            }
-            else // == if ( ! S_target_reversed )
-            {
-                if ( agent->world().self().pos().y > base_target_abs_y - 2.0 )
-                {
-                    drib_target.y = -base_target_abs_y;
-                    dlog.addText( Logger::TEAM,
-                                  __FILE__": dribble(3). target=(%.1f, %.1f)",
-                                  drib_target.x, drib_target.y );
-                }
-                else
-                {
-                    drib_target.y = base_target_abs_y;
-                    dlog.addText( Logger::TEAM,
-                                  __FILE__": dribble(4). target=(%.1f, %.1f)",
-                                  drib_target.x, drib_target.y );
-                }
-            }
-
-            drib_target.x = goalie_abs_x + 1.0;
-            drib_target.x = min_max( penalty_abs_x - 2.0,
-                                     drib_target.x,
-                                     ServerParam::i().pitchHalfLength() - 4.0 );
-
-            double dashes = ( agent->world().self().pos().dist( drib_target ) * 0.8
-                              / ServerParam::i().defaultPlayerSpeedMax() );
-            drib_dashes = static_cast<int>(floor(dashes));
-            drib_dashes = min_max( 1, drib_dashes, 6 );
-            dlog.addText( Logger::TEAM,
-                          __FILE__": dribble. target=(%.1f, %.1f) dashes=%d",
-                          drib_target.x, drib_target.y, drib_dashes );
-        }
-    }
-
-
-    if ( opp_goalie && goalie_dist < 5.0 )
-    {
-        AngleDeg drib_angle = ( drib_target - agent->world().self().pos() ).th();
-        AngleDeg goalie_angle = ( opp_goalie->pos() - agent->world().self().pos() ).th();
-        drib_dashes = 6;
-        if ( (drib_angle - goalie_angle).abs() < 80.0 )
-        {
-            drib_target = agent->world().self().pos();
-            drib_target += Vector2D::polar2vector( 10.0,
-                                                   goalie_angle
-                                                   + ( wm.self().pos().y > 0
-                                                       ? -1.0
-                                                       : +1.0 ) * 55.0 );
-            dlog.addText( Logger::TEAM,
-                          __FILE__": dribble. avoid goalie. target=(%.1f, %.1f)",
-                          drib_target.x, drib_target.y );
-        }
-        dlog.addText( Logger::TEAM,
-                      __FILE__": dribble. goalie near. dashes=%d",
-                      drib_dashes );
-    }
-
-    Vector2D target_rel = drib_target - agent->world().self().pos();
-    double buf = 2.0;
-    if ( drib_target.absX() < penalty_abs_x )
-    {
-        buf += 2.0;
-    }
-
-    if ( target_rel.absX() < 5.0
-         && ( opp_goalie == NULL
-              || opp_goalie->pos().dist( drib_target ) > target_rel.r() - buf )
-         )
-    {
-        if ( ( target_rel.th() - agent->world().self().body() ).abs() < 5.0 )
-        {
-            double first_speed
-                = calc_first_term_geom_series_last
-                ( 0.5,
-                  target_rel.r(),
-                  ServerParam::i().ballDecay() );
-
-            first_speed = std::min( first_speed, ServerParam::i().ballSpeedMax() );
-            Body_SmartKick( drib_target,
-                            first_speed,
-                            first_speed * 0.96,
-                            3 ).execute( agent );
-            //             Body_KickMultiStep( drib_target, first_speed ).execute( agent );
-            dlog.addText( Logger::TEAM,
-                          __FILE__": kick. to=(%.1f, %.1f) first_speed=%.1f",
-                          drib_target.x, drib_target.y, first_speed );
-        }
-        else if ( ( agent->world().ball().rpos()
-                    + agent->world().ball().vel()
-                    - agent->world().self().vel() ).r()
-                  < agent->world().self().playerType().kickableArea() - 0.2 )
-        {
-            Body_TurnToPoint( drib_target ).execute( agent );
-        }
-        else
-        {
-            Body_StopBall().execute( agent );
-        }
-    }
-    else
-    {
-#if 0
-        bool dodge_mode = true;
-        if ( opp_goalie == NULL
-             || ( ( opp_goalie->pos() - agent->world().self().pos() ).th()
-                  - ( drib_target - agent->world().self().pos() ).th() ).abs() > 45.0 )
-        {
-            dodge_mode = false;
-        }
-#else
-        bool dodge_mode = false;
-#endif
-        Body_Dribble2008( drib_target,
-                          2.0,
-                          drib_power,
-                          drib_dashes,
-                          dodge_mode
-                          ).execute( agent );
-    }
 
     if ( opp_goalie )
     {
@@ -928,7 +563,6 @@ Bhv_PenaltyKick::doDribble( PlayerAgent * agent )
     {
         agent->setNeckAction( new Neck_ScanField() );
     }
-
     return true;
 }
 
@@ -1021,345 +655,8 @@ Bhv_PenaltyKick::doGoalieSetup( PlayerAgent * agent )
 bool
 Bhv_PenaltyKick::doGoalie( PlayerAgent* agent )
 {
-    const rcsc::PenaltyKickState * state = agent->world().penaltyKickState();
-    const rcsc::WorldModel & wm = agent->world();
-    const ServerParam & SP = ServerParam::i();
-    rcsc::Vector2D ball = wm.ball().pos();
-    rcsc::Vector2D me = wm.self().pos();
-
-    const PlayerPtrCont & opps = wm.opponentsFromSelf();
-    const PlayerObject * nearest_opp
-        = ( opps.empty()
-            ? static_cast< PlayerObject * >( 0 )
-            : opps.front() );
-    const double nearest_opp_dist = ( nearest_opp
-                                      ? nearest_opp->distFromSelf()
-                                      : 1000.0 );
-    const Vector2D nearest_opp_pos = ( nearest_opp
-                                             ? nearest_opp->pos()
-                                             : Vector2D( -1000.0, 0.0 ) );
-
-
-    ///////////////////////////////////////////////
-    // check if catchabale
-    Rect2D our_penalty( Vector2D( -SP.pitchHalfLength(),
-                                  -SP.penaltyAreaHalfWidth() + 1.0 ),
-                        Size2D( SP.penaltyAreaLength() - 1.0,
-                                SP.penaltyAreaWidth() - 2.0 ) );
-
-    if ( wm.ball().distFromSelf() < SP.catchableArea() - 0.05
-         && our_penalty.contains( wm.ball().pos() ) )
-    {
-        dlog.addText( Logger::TEAM,
-                      __FILE__": goalie try to catch" );
-        return agent->doCatch();
-    }
-
-    if ( wm.self().isKickable() )
-    {
-        Body_ClearBall().execute( agent );
-        agent->setNeckAction( new Neck_TurnToBall() );
-        return true;
-    }
-
-
-    if ( Bhv_BasicTackle( 0.8, 80.0 ).execute( agent ) )
-    {
-        return true;
-    }
-
-    if( Bhv_BasicTackle( 0.6, 60.0 ).execute( agent ) )
-    {
-        return true;
-    }
-
-
-//     if( wm.ball().posCount() > 2 )
-//     {
-//       agent->doDash( -100 );
-// //      Body_TurnToPoint( ball ).execute( agent );
-//       agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-//       return true;
-//     }
-
-      int myCycles = wm.interceptTable()->selfReachCycle();
-      //int tmmCycles = wm.interceptTable()->teammateReachCycle();
-      int oppCycles = wm.interceptTable()->opponentReachCycle();
-
-      if( myCycles - 1 <= oppCycles )
-      {
-         rcsc::Body_Intercept().execute( agent );
-         agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-         return true;
-      }
-
-      rcsc::Vector2D opp = wm.opponentsFromBall().front()->pos();
-      rcsc::Vector2D oppVel = wm.opponentsFromBall().front()->vel();
-
-      double dashPower = rcsc::ServerParam::i().maxDashPower();
-
-      rcsc::Vector2D goalPos = rcsc::Vector2D(rcsc::sign(ball.x)*52.5, 0.0);
-      rcsc::Vector2D ballPos2 = wm.ball().inertiaPoint( oppCycles );
-      rcsc::Line2D ball2goal( ballPos2, rcsc::Vector2D(rcsc::sign(ball.x)*54.5, 0.0) );
-      float homeY = ball2goal.getY( me.x );
-
-      float minYdiff = 0.6; // 0.8
-
-        if( me.dist(ball) < 17 )
-          minYdiff = 0.5; // 0.7
-        if( me.dist(ball) < 12 )
-          minYdiff = 0.3; // 0.4
-        if( me.dist(ball) < 9 )
-          minYdiff = 0.25; // 0.3
-
-
-        float plusX = 5;
-
-        if( me.dist(ball) < 15 )
-          plusX = 6; // 3
-        if( me.dist(ball) < 12 )
-          plusX = 3; // 1.5
-        if( me.dist(ball) < 7 )
-          plusX = 0; // 0
-
-        if( fabs(me.y-homeY) > 2.5 )
-          plusX = 0;
-
-        if( ball.x > 0.0 )
-          plusX *= -1;
-
-
-        rcsc::Vector2D nextBall = ball + wm.ball().vel();
-
-        rcsc::Line2D oppToGoal = rcsc::Line2D(goalPos,opp+oppVel);
-
-        if( wm.ball().vel().r() > 2.0 && nextBall.dist(me+wm.self().vel()) < 1.9 )
-        { // for tackle
-//            std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"TURN 4 Tackle\n";
-           rcsc::Body_TurnToPoint(nextBall).execute( agent );
-        }
-        else if( wm.ball().vel().absX() > 1.8 && oppCycles > 15 )
-        {
-           rcsc::Body_Intercept().execute( agent );
-//            std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"shut karde, intercept kon!!\n";
-        }
-        else if( ball.absY() > 13.5 )
-	{ // For Bugs
-           rcsc::Body_Intercept().execute( agent );	  
-	}
-        else if( me.dist(opp+oppVel) < 3.5 && oppToGoal.dist(me) < 0.7 && me.dist(nextBall) < 3.5 &&
-                (wm.opponentsFromBall().front()->vel().r() < 0.2 ||
-                 wm.opponentsFromBall().front()->body().abs() < 10 || wm.opponentsFromBall().front()->body().abs() > 160 ) )
-        {
-           rcsc::Body_Intercept(false,ball).execute( agent );
-//            std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"ReCdam, unam vaysade ya dare miad tu shikamam, iladim Hamlaa kon!!!\n";
-        }
-        /// new situation resolving the BUG in penalty mode
-        else if( ( (oppCycles > 5 || ballPos2.absY() > 6.0) && me.dist(opp) > 8.0 && ballPos2.absX() < 40.0 && oppCycles < myCycles ) && me.absX() - 10.0 > ballPos2.absX() )
-        {
-          rcsc::Vector2D blockPoint = ballPos2 +
-                            rcsc::Vector2D::polar2vector( 7.5, (goalPos-ball).dir() );
-          rcsc::Body_GoToPoint( blockPoint, 0.3, dashPower,
-                                -1, 3, true, 15.0).execute( agent );
-//           std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"endakhte do0r ya paEn balae, going to blockpoint 1\n";
-
-        }
-        else if( me.dist(opp) > 14.0 && ballPos2.absY() < 5.0 && ballPos2.absX() < 40.0 && oppCycles < myCycles &&
-                 me.absX() - 10.0 > ballPos2.absX()  )
-        {
-          rcsc::Vector2D blockPoint = ballPos2 +
-                            rcsc::Vector2D::polar2vector( 7.5, (goalPos-ball).dir() );
-          rcsc::Body_GoToPoint( blockPoint, 0.3, dashPower,
-                                -1, 3, true, 15.0).execute( agent );
-//           std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"endakhte do0r, going to blockpoint 2\n";
-        }
-        else if( fabs( me.absY() - opp.absY() ) < minYdiff && me.absX() - 10.0 > ballPos2.absX() ) // 10 stable!
-        {
-           rcsc::Vector2D blockPoint = ballPos2 +
-                             rcsc::Vector2D::polar2vector( 4.0, (goalPos-ball).dir() );
-
-           rcsc::Vector2D ourGoal = rcsc::Vector2D(rcsc::sign(ball.x)*52.5, 0.0);
-
-           rcsc::Vector2D goaltoopp = ourGoal - opp;
-           rcsc::Vector2D metoopp = me-opp;
-
-           if( std::fabs( goaltoopp.dir().degree() - metoopp.dir().degree() ) > 3.0 )
-           {
-             rcsc::Body_TurnToPoint( blockPoint ).execute( agent );
-//              std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tup dure, minYdiff doroste, BODYTO CHAKUN!\n";
-           }
-           else
-           {
-             rcsc::Body_Intercept().execute( agent );
-//              std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tup dure, minYdiff doroste, saf boro! intercepting!!\n";
-           }
-
-//            rcsc::Body_GoToPoint( blockPoint, 0.3, dashPower,
-//                                 -1, 3, true, 4.0).execute( agent );
-        }
-//         else if ( me.absX() - 8.5 > ballPos2.absX() )
-//         {
-//           if( ballPos2.y > homeY ) // > me.y bud AmirZ!
-//              rcsc::Body_GoToPoint( rcsc::Vector2D(me.x + plusX, me.y + 10 ), 0.3, dashPower,
-//                                    -1, 3, true, 7.0).execute( agent );
-//           else
-// //              rcsc::Body_Intercept().execute( agent );
-//             rcsc::Body_GoToPoint( rcsc::Vector2D(me.x + plusX, me.y - 10 ), 0.3, dashPower,
-//                                   -1, 3, true, 7.0).execute( agent );
-// 
-//          std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tup dure, y diff az minYdiff bishtare!\n";
-// 
-//         }
-        else if( ballPos2.absX() > me.absX() - 10.0 && ballPos2.absX() < me.absX() )
-        {
-
-//            if( homeY < me.y )
-//               homeY = me.y - 5;
-//            else
-//               homeY = me.y + 5;
-
-           rcsc::Vector2D homePos = rcsc::Vector2D(me.x, homeY);
-
-           double bodyAngle = -90;
-               if( opp.y > 18.0 )
-                 bodyAngle = +90;
-
-           if( std::fabs( bodyAngle - agent->world().self().body().degree() ) > 2.0 )
-           {
-//                  std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tuye 10 metrie tup, aval badan saf!\n";
-	         rcsc::Body_TurnToAngle( bodyAngle ).execute( agent );
-           }
-           else
-           {
-             double my_inc = wm.self().playerType().staminaIncMax() * wm.self().recovery();
-
-             if( wm.self().stamina() > 2500 )
-             {
-// 		    	 if( fabs( homeY - me.y ) < 0.2 )
-// 		    	 {
-// 		           if( homeY > me.y )
-// 		             agent->doDash( 0 );
-// 		           else
-// 		             agent->doDash( 0 );
-//      	    	 }
-// 	    		 if( fabs( homeY - me.y ) < 0.4 )
-// 		    	 {
-// 		           if( homeY > me.y )
-// 		             agent->doDash( 60 );
-// 		           else
-// 		             agent->doDash( -60 );
-// 		    	 }
-// 		    	 if( fabs( homeY - me.y ) < 0.8 )
-
-//                 if( ball.absY() < 10.0 )
-                {
-                    float power = 100;
-
-                    if( me.dist(homePos) < 1.0 && wm.self().stamina() < 3000.0 )
-                       power = 50;
-
-                   if( opp.y < -15.0 )
-                   {
-                      if( homeY > me.y + 0.2 )
-                         agent->doDash( power );
-                      else if( homeY < me.y - 0.2 )
-                         agent->doDash( -power );
-                      else if( homeY > me.y )
-                         agent->doDash( 0 );
-                      else if( homeY < me.y )
-                         agent->doDash( -0 );
-                   }
-                   else
-                   {
-                      if( homeY > me.y + 0.2 )
-                         agent->doDash( -power );
-                      else if( homeY < me.y - 0.2 )
-                         agent->doDash( power );
-                      else if( homeY > me.y )
-                         agent->doDash( -0 );
-                      else if( homeY < me.y )
-                         agent->doDash( 0 );
-                    }
-
-//                      std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tuye 7 metrie tup, bala paEnesh kon!\n";
-
-
-
-                }
-             }
-             else
-             {
-                if( me.dist(homePos) > 0.5 )
-                {
-                   if( opp.y > 25.0 )
-                   {
-                      if( homeY > me.y )
-                         agent->doDash( my_inc );
-                      else if( homeY < me.y )
-                         agent->doDash( -my_inc );
-                   }
-                   else
-                   {
-                      if( homeY > me.y )
-                         agent->doDash( -my_inc );
-                      else if( homeY < me.y )
-                         agent->doDash( my_inc );
-                   }
-//                  std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"tuye 10 metrie tup, bala paEnesh kon! - STamina LOW\n";
-                }
-             }
-
-
-           }
-
-// 	       else
-// 	       {
-// 		     if( homeY < me.y )
-// 		       agent->doDash( -100 );
-// 		     else
-// 		       agent->doDash( 100.0 );
-// 	       }
-
-
-        }
-        else
-        {
-           rcsc::Body_Intercept().execute( agent );
-//            std::cout<<"\nCYCLE: "<<wm.time().cycle()<<"intercept akharie!\n";
-//           agent->doTurn(180.0);
-        }
-
-
-      if( wm.ball().posCount() < 2 )
-          agent->setNeckAction( new rcsc::Neck_TurnToBall() );
-      else
-          agent->setNeckAction( new rcsc::Neck_TurnToPoint(wm.ball().pos()) );
-
-      return true;
-
-
-
-
-
-
-    ///////////////////////////////////////////////
-    // if taker can only one kick, goalie should stay the front of goal.
-    if ( ! SP.penAllowMultKicks() )
-    {
-        // kick has not been taken.
-        if ( wm.ball().vel().r2() < 0.01
-             && wm.ball().pos().absX() < SP.pitchHalfLength() - SP.penDistX() - 1.0 )
-        {
-            return doGoalieSetup( agent );
-        }
-
-        if ( wm.ball().vel().r2() > 0.01 )
-        {
-            return doGoalieSlideChase( agent );
-        }
-    }
-
-    return doGoalieBasicMove( agent );
+  
+  return  Bhv_Savior(true).execute(agent);
 }
 
 /*-------------------------------------------------------------------*/
@@ -1383,26 +680,9 @@ Bhv_PenaltyKick::doGoalieBasicMove( PlayerAgent * agent )
     ////////////////////////////////////////////////////////////////////////
     // get active interception catch point
     const int self_min = wm.interceptTable()->selfReachCycle();
-    Vector2D move_pos = wm.ball().inertiaPoint( self_min );
+    const int opp_min=wm.interceptTable()->opponentReachCycle();
 
-    if ( our_penalty.contains( move_pos ) )
-    {
-        dlog.addText( Logger::TEAM,
-                      __FILE__": goalieBasicMove. exist intercept point " );
-        agent->debugClient().addMessage( "ExistIntPoint" );
-        if ( wm.interceptTable()->opponentReachCycle() < wm.interceptTable()-> selfReachCycle()
-             || wm.interceptTable()-> selfReachCycle() <=4 )
-        {
-            if ( Body_Intercept( false ).execute( agent ) )
-            {
-                agent->debugClient().addMessage( "Intercept" );
-                dlog.addText( Logger::TEAM,
-                              __FILE__": goalieBasicMove. do intercept " );
-                agent->setNeckAction( new Neck_TurnToBall() );
-                return true;
-            }
-        }
-    }
+
 
 
     Vector2D my_pos = wm.self().pos();
@@ -1420,32 +700,49 @@ Bhv_PenaltyKick::doGoalieBasicMove( PlayerAgent * agent )
                                          SP.ballDecay() );
     }
 
-    move_pos = getGoalieMovePos( ball_pos, my_pos );
+    const Ray2D ball_ray( wm.ball().pos(), wm.ball().vel().th() );
+    const Line2D goal_line( Vector2D( -SP.pitchHalfLength(), ServerParam::i().goalHalfWidth() ),
+                            Vector2D( -SP.pitchHalfLength(), -ServerParam::i().goalHalfWidth() ) );
 
-    dlog.addText( Logger::TEAM,
-                  __FILE__": goalie basic move to (%.1f, %.1f)",
-                  move_pos.x, move_pos.y );
-    agent->debugClient().setTarget( move_pos );
-    agent->debugClient().addMessage( "BasicMove" );
+    const Vector2D intersect = ball_ray.intersection( goal_line );
+
+    Vector2D shoot_target=Vector2D(sign(wm.ball().pos().x)*52.5,0.0);
+
+
+
+    if (wm.ball().pos().absY()>7.0)
+    {
+        shoot_target.y=sign(wm.ball().pos().y)*ServerParam::i().goalHalfWidth();
+    }
+
+
+    if (intersect.isValid())
+    {
+        shoot_target=intersect;
+    }
+
+
+    Vector2D opp_trap_pos=wm.ball().inertiaPoint(opp_min);
+    Vector2D self_trap_pos = wm.ball().inertiaPoint(self_min);
+    Vector2D move_pos=self_trap_pos;
+    move_pos.x=std::min(opp_trap_pos.x,self_trap_pos.x)-4.0;
+
+    Line2D shoot_line(opp_trap_pos,shoot_target);
+
+    move_pos.y=shoot_line.getY(move_pos.x);
+
 
     if ( ! Body_GoToPoint( move_pos,
-                           0.5,
+                           1.0,
                            SP.maxDashPower()
                            ).execute( agent ) )
     {
         // already there
-        AngleDeg face_angle = wm.ball().angleFromSelf();
-        if ( wm.ball().angleFromSelf().isLeftOf( wm.self().body() ) )
-        {
-            face_angle += 90.0;
-        }
-        else
-        {
-            face_angle -= 90.0;
-        }
-        Body_TurnToAngle( face_angle ).execute( agent );
+
+        Body_TurnToBall().execute(agent);
     }
-    agent->setNeckAction( new Neck_TurnToBall() );
+
+    agent->setNeckAction( new Neck_TurnToBallOrScan() );
 
     return true;
 }

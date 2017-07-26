@@ -71,7 +71,6 @@
 #include <rcsc/action/body_go_to_point_dodge.h>
 #include "bhv_attacker_offensive_move.h"
 #include "shoot_area_sf_move.h"
-#include "bhv_side_half_offensive_move.h"
 static const int VALID_PLAYER_THRESHOLD = 8;
 
 const std::string RoleSideForward::NAME( "SideForward" );

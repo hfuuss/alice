@@ -1,8 +1,7 @@
 
 
 Player_Obj	+=	\
-                $(Dst_SrcObj)/bhv_side_half_offensive_move.o\
-                $(Dst_SrcObj)/bhv_side_half_pass_request_move.o\
+                $(Dst_SrcObj)/bhv_savior.o\
                 $(Dst_SrcObj)/voron_point.o\
                 $(Dst_SrcObj)/bhv_deflecting_tackle.o\
                 $(Dst_SrcObj)/BinaryToFile.o\
