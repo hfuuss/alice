@@ -366,7 +366,7 @@ bool Bhv_CenterBack_Move::EmergencyMove(PlayerAgent* agent)
 
         // while other defenders are behind my homepos
         if( num < 6 && opp_min < mate_min && opp_min < 8 && wm.ourDefenseLineX() <homePos.x - 0.5 &&
-            ball.x < 0.0 && ball.x > -35.0 )
+            PRE_BALL.x < 0.0 && PRE_BALL.x > -35.0 )
         {
            homePos.x = std::max( -35.0, wm.ourDefenseLineX() );
            emergency_situation=true;
@@ -622,7 +622,7 @@ bool Bhv_CenterBack_Move::DefensiveMark(PlayerAgent* agent)
 
       if( targetPoint.x < -36.0 )  // was -37.0 before 2011
          targetPoint.x = -36.0;
-     double dash_power=ServerParam::i().maxDashPower();
+      double dash_power=ServerParam::i().maxDashPower();
 
       DefensiveAction(homePos,dash_power,mark_target).Mark(agent);
       return true;

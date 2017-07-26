@@ -330,13 +330,12 @@ bool Bhv_SideBack_Move::EmergencyMove(PlayerAgent* agent)
     // danger situation for defenders
 
         // while other defenders are behind my homepos
-    if( num < 6 && opp_min < mate_min && opp_min < 8 && wm.ourDefenseLineX() <homePos.x - 0.5 &&
-        ball.x < 0.0 && ball.x > -35.0 )
-    {
-       homePos.x = std::max( -35.0, wm.ourDefenseLineX() );
-       emergency_situation=true;
-    }
-
+      if( num < 6 && opp_min < mate_min && opp_min < 8 && wm.ourDefenseLineX() <homePos.x - 0.5 &&
+            PRE_BALL.x < 0.0 && PRE_BALL.x > -35.0 )
+        {
+           homePos.x = std::max( -35.0, wm.ourDefenseLineX() );
+           emergency_situation=true;
+        }
 
 //       // defenders fall back fast
 //       if( num < 6 && opp_min < mate_min && opp_min < 15 && me.x > homePos.x + 2.5 && wm.ourDefenseLineX() < me.x - 0.5 &&
