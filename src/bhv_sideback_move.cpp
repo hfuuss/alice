@@ -239,7 +239,8 @@ void Bhv_SideBack_Move::doNormalMove(PlayerAgent* agent)
 //        homePos.x = opp.x - 0.5;
        homePos.y = opp.y;
      }
-     
+     dash_power=ServerParam::i().maxDashPower();
+
    }
     if ( dist_thr < 0.5 ) dist_thr = 0.5;
 

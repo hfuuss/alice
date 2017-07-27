@@ -235,6 +235,7 @@ void Bhv_CenterBack_Move::doNormalMove(PlayerAgent* agent)
     if(  me.x > wm.ourDefenseLineX() + 2.0 && homePos.x > me.x )
     {
       homePos.x = me.x;
+      
     }
     
   const int num=wm.self().unum();
@@ -266,6 +267,8 @@ void Bhv_CenterBack_Move::doNormalMove(PlayerAgent* agent)
 //        homePos.x = opp.x - 0.5;
        homePos.y = opp.y;
      }
+     
+     dash_power=ServerParam::i().maxDashPower();
      
    }
     if ( dist_thr < 0.5 ) dist_thr = 0.5;
