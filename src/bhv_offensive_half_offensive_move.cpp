@@ -265,10 +265,23 @@ Bhv_OffensiveHalfOffensiveMove::doGetBall( PlayerAgent * agent )
 
 
 
-    if (mark_target==fastest_opp||self_min<mate_min)
+    if ((mark_target==fastest_opp||self_min<mate_min)&&wm.ball().distFromSelf()<5.0)
     {
 
-        return Bhv_GetBall().DefenderGetBall(agent);
+//         return Bhv_GetBall().DefenderGetBall(agent);
+              Body_Intercept().execute( agent );
+
+        if ( opp_min >= self_min + 3 )
+        {
+            agent->setNeckAction( new Neck_OffensiveInterceptNeck() );
+        }
+        else
+        {
+            agent->setNeckAction(  new Neck_TurnToBallOrScan()  );
+        }
+        return true;
+    
+    
 
     }
 

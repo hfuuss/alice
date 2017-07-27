@@ -80,7 +80,7 @@ Bhv_GetBall::execute( PlayerAgent * agent )
     }
        
        
-     if (self_min<=opp_min&&self_min<=mate_min)
+     if (self_min<=opp_min+1&&self_min<=mate_min)
 	  
      {
               Body_Intercept().execute( agent );
