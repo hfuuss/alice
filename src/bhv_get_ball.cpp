@@ -166,7 +166,7 @@ Bhv_GetBall::execute( PlayerAgent * agent )
      static rcsc::Vector2D opp_static_pos = opp;
 
 
-     if( me.dist( blockPos ) < 2.5 && targetLine.dist(me) <0.5 && myCycles <= 3 )
+     if( me.dist( blockPos ) < 2.5 && targetLine.dist(me) <0.5 && myCycles <= 2 )
      {
 
         rcsc::Body_Intercept().execute( agent );
