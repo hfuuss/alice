@@ -105,8 +105,11 @@ Bhv_BasicTackle::execute( PlayerAgent * agent )
 
 
 
+   const int num=wm.self().unum();
 
    if (wm.self().unum()<6&&!wm.self().goalie())  M_min_probability=0.90;
+   if (num<6&&num>0&&wm.ball().pos().x>-35.0)   M_min_probability=0.94;
+   
    
    
    
