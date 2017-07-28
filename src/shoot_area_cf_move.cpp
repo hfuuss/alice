@@ -70,11 +70,11 @@ bool shoot_area_cf_move::execute(PlayerAgent* agent)
 
 
 
-   // if (throughPassShootHelper(agent))
-   // {
+   if (throughPassShootHelper(agent))
+   {
 
-      //  return true;
-   // }
+       return true;
+   }
 
 
 
@@ -370,7 +370,7 @@ bool shoot_area_cf_move::throughPassShootHelper(rcsc::PlayerAgent *agent)
 {
 
 
-    const WorldModel &wm =agent->world();
+  const WorldModel &wm =agent->world();
     const int num =wm.self().unum();
     bool through_pass=false;
     Vector2D home_pos=Strategy::i().getPosition(wm.self().unum());
@@ -382,7 +382,7 @@ bool shoot_area_cf_move::throughPassShootHelper(rcsc::PlayerAgent *agent)
 
 
 
-    bool   fast_dribble_team=mate_min<opp_min&&wm.ball().vel().x>0.99&&wm.ball().pos().x>wm.self().pos().x;
+    bool   fast_dribble_team=mate_min<opp_min&&wm.ball().vel().x>0.8&&wm.ball().pos().x>wm.self().pos().x;
 
 
 
@@ -394,15 +394,15 @@ bool shoot_area_cf_move::throughPassShootHelper(rcsc::PlayerAgent *agent)
 
         target_point.x=std::max(wm.offsideLineX()+buff,wm.ball().inertiaPoint(mate_min).x+buff);
 
-        target_point.y=fabs(target_point.y-wm.self().pos().y)<6.0? wm.self().pos().y:target_point.y;
+        target_point.y=fabs(target_point.y-wm.self().pos().y)<5.0? wm.self().pos().y:target_point.y;
 
         double opp_dist_target=1000;
         const PlayerObject *opp_marker= wm.getOpponentNearestTo(target_point,5,&opp_dist_target);
 
-        if (wm.self().pos().x>home_pos.x)
-        {
-            return false;
-        }
+//         if (wm.self().pos().x>home_pos.x)
+//         {
+//             return false;
+//         }
 
 
 

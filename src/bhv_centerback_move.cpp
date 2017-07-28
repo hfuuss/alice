@@ -270,6 +270,7 @@ void Bhv_CenterBack_Move::doNormalMove(PlayerAgent* agent)
      
      dash_power=ServerParam::i().maxDashPower();
      
+     
    }
     if ( dist_thr < 0.5 ) dist_thr = 0.5;
 
@@ -374,18 +375,6 @@ bool Bhv_CenterBack_Move::EmergencyMove(PlayerAgent* agent)
            homePos.x = std::max( -35.0, wm.ourDefenseLineX() );
            emergency_situation=true;
         }
-
-//       // defenders fall back fast
-//       if( num < 6 && opp_min < mate_min && opp_min < 15 && me.x > homePos.x + 2.5 && wm.ourDefenseLineX() < me.x - 0.5 &&
-//           ball.x < 0.0 && ball.x > -40.0 && std::fabs( me.absY() - homePos.absY() ) < 5.0 )
-//       {
-//           homePos.x = me.x - 10;
-//           homePos.y = me.y;
-//           emergency_situation=true;
-
-//       }
-
-
 
 
 

@@ -343,7 +343,6 @@ Brain::less36_decesion_tree(const PredictState & state,const ActionStatePair pat
          {
                 double basic_push_ball_bonus=50;
                 p+=basic_push_ball_bonus;
-
                 double  push_x_bonus= (targetBall.x-currentBall.x)*10;
                 p+=push_x_bonus;
                 return p;
@@ -374,8 +373,7 @@ Brain::less36_decesion_tree(const PredictState & state,const ActionStatePair pat
 
             double attackle_line_bonus=  first_action.category()==CooperativeAction::Pass ? (110-targetBall_dist_goal)*10:
                                                                                              first_action.firstBallSpeed()*15;
-
-
+										     
             p+=attackle_line_bonus*success_prob;
 
             return p;

@@ -819,7 +819,7 @@ bool Bhv_AttackerOffensiveMove::throughPassShootHelper(PlayerAgent* agent)
 
 
 
-    bool   fast_dribble_team=mate_min<opp_min&&wm.ball().vel().x>0.99&&wm.ball().pos().x>wm.self().pos().x;
+    bool   fast_dribble_team=mate_min<opp_min&&wm.ball().vel().x>0.7&&wm.ball().pos().x>wm.self().pos().x;
 
 
 
@@ -831,16 +831,16 @@ bool Bhv_AttackerOffensiveMove::throughPassShootHelper(PlayerAgent* agent)
 
         target_point.x=std::max(wm.offsideLineX()+buff,wm.ball().inertiaPoint(mate_min).x+buff);
 
-        target_point.y=fabs(target_point.y-wm.self().pos().y)<6.0? wm.self().pos().y:target_point.y;
+        target_point.y=fabs(target_point.y-wm.self().pos().y)<5.0? wm.self().pos().y:target_point.y;
 
         double opp_dist_target=1000;
         const PlayerObject *opp_marker= wm.getOpponentNearestTo(target_point,5,&opp_dist_target);
 
-        if (wm.self().pos().x>home_pos.x)
-        {
-            return false;
-        }
-
+//         if (wm.self().pos().x>home_pos.x)
+//         {
+//             return false;
+//         }
+// 
 
 
            double dist_thr=wm.ball().distFromSelf()*0.1;
