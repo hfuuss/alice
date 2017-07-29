@@ -104,7 +104,24 @@ bool Bhv_CenterBack_Move::execute( PlayerAgent * agent )
     }
 
 
+   if( me.x < -37.0 && opp_min < mate_min && 
+       (homePos.x > -37.5 || wm.ball().inertiaPoint(opp_min).x > -36.0 ) &&
+       wm.ourDefenseLineX() > me.x - 2.5  )
+   {
+       if(!Body_GoToPoint( rcsc::Vector2D( me.x + 15.0, me.y ),
+                        0.5, ServerParam::i().maxDashPower(), // maximum dash power
+                         1).execute( agent ))
+       {
+	 Body_TurnToBall().execute(agent);
+       }
 
+       if( wm.existKickableOpponent()
+           && wm.ball().distFromSelf() < 12.0 )
+             agent->setNeckAction( new Neck_TurnToBall() );
+       else
+             agent->setNeckAction( new Neck_TurnToBallOrScan() );
+       return true;
+   }
 
 
 
@@ -234,6 +251,7 @@ void Bhv_CenterBack_Move::doNormalMove(PlayerAgent* agent)
 
     if(  me.x > wm.ourDefenseLineX() + 2.0 && homePos.x > me.x )
     {
+      
       homePos.x = me.x;
       
     }
@@ -376,7 +394,13 @@ bool Bhv_CenterBack_Move::EmergencyMove(PlayerAgent* agent)
            emergency_situation=true;
         }
 
-
+  // defenders fall back fast
+   if( num < 6 && opp_min < mate_min && opp_min < 15 && me.x > homePos.x + 2.5 && wm.ourDefenseLineX() < me.x - 0.5 &&
+       ball.x < 0.0 && ball.x > -40.0 && std::fabs( me.absY() - homePos.absY() ) < 5.0 )
+   {
+       homePos.x = me.x - 10;
+       homePos.y = me.y;
+   }
 
     if (emergency_situation){
 
@@ -479,7 +503,10 @@ bool Bhv_CenterBack_Move::Mark(PlayerAgent *agent,const rcsc::AbstractPlayerObje
     {
         return false;
     }
-    if (!mark_target || mark_target->posCount()>3||mark_target==wm.interceptTable()->fastestOpponent())
+   
+   
+   
+   if (!mark_target || mark_target->posCount()>3||mark_target==wm.interceptTable()->fastestOpponent())
     {
         return false;
     }
@@ -614,7 +641,7 @@ bool Bhv_CenterBack_Move::DefensiveMark(PlayerAgent* agent)
 
       if( targetPoint.x < -36.0 )  // was -37.0 before 2011
          targetPoint.x = -36.0;
-      double dash_power=ServerParam::i().maxDashPower();
+       double dash_power=ServerParam::i().maxDashPower();
 
       DefensiveAction(homePos,dash_power,mark_target).Mark(agent);
       return true;

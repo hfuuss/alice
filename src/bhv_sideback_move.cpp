@@ -111,6 +111,24 @@ bool Bhv_SideBack_Move::execute( PlayerAgent * agent )
 
 
 
+   if( me.x < -37.0 && opp_min < mate_min && 
+       (homePos.x > -37.5 || wm.ball().inertiaPoint(opp_min).x > -36.0 ) &&
+       wm.ourDefenseLineX() > me.x - 2.5  )
+   {
+       if(!Body_GoToPoint( rcsc::Vector2D( me.x + 15.0, me.y ),
+                        0.5, ServerParam::i().maxDashPower(), // maximum dash power
+                         1).execute( agent ))
+       {
+	 Body_TurnToBall().execute(agent);
+       }
+
+       if( wm.existKickableOpponent()
+           && wm.ball().distFromSelf() < 12.0 )
+             agent->setNeckAction( new Neck_TurnToBall() );
+       else
+             agent->setNeckAction( new Neck_TurnToBallOrScan() );
+       return true;
+   }
 
 
 
@@ -338,17 +356,13 @@ bool Bhv_SideBack_Move::EmergencyMove(PlayerAgent* agent)
            emergency_situation=true;
         }
 
-//       // defenders fall back fast
-//       if( num < 6 && opp_min < mate_min && opp_min < 15 && me.x > homePos.x + 2.5 && wm.ourDefenseLineX() < me.x - 0.5 &&
-//           ball.x < 0.0 && ball.x > -40.0 && std::fabs( me.absY() - homePos.absY() ) < 5.0 )
-//       {
-//           homePos.x = me.x - 10;
-//           homePos.y = me.y;
-//           emergency_situation=true;
-
-//       }
-
-
+  // defenders fall back fast
+   if( num < 6 && opp_min < mate_min && opp_min < 15 && me.x > homePos.x + 2.5 && wm.ourDefenseLineX() < me.x - 0.5 &&
+       ball.x < 0.0 && ball.x > -40.0 && std::fabs( me.absY() - homePos.absY() ) < 5.0 )
+   {
+       homePos.x = me.x - 10;
+       homePos.y = me.y;
+   }
 
 
 
