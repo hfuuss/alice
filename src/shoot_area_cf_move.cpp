@@ -107,7 +107,7 @@ bool shoot_area_cf_move::execute(PlayerAgent* agent)
     
     std::vector<Vector2D> point_on_vn_segment;
     
-    M_Pass_Voron.getPointsOnSegments(1.5,6,&point_on_vn_segment);
+    M_Pass_Voron.getPointsOnSegments(2.5,10,&point_on_vn_segment);
     
     VoronoiDiagram::Vector2DCont Voron=M_Pass_Voron.resultPoints();
     double best_point=-1000;

@@ -18,7 +18,8 @@
 #include"bhv_basic_move.h"
 #include "voron_point.h"
 #include "shoot_area_cf_move.h"
-
+#include <rcsc/common/server_param.h>
+#include <rcsc/action/arm_point_to_point.h>
 using namespace  rcsc;
 static int  VALID_PLAYER_THRESHOLD=8;
 
@@ -65,42 +66,17 @@ bool shoot_area_sf_move::execute(PlayerAgent* agent)
     }
 
 
-    double dash_power=get_dash_power(agent);
     Vector2D home_pos=Strategy::i().getPosition(wm.self().unum());
     Vector2D target_point =get_target(agent,home_pos);
-    double dist_thr=0.5;
-
-    //    // min cycle to run stright line
+    double dash_power = rcsc::ServerParam::i().maxPower();
+    double dist_thr = wm.ball().distFromSelf()*0.1;
     
-    //     if (wm.ball().pos().x>35&&wm.self().pos().x<35)
-    //     {
-    //       target_point.y = wm.self().pos().y;
-    //       dash_power=ServerParam::i().maxDashPower();
-
-    //     }
-
-    //     if (wm.self().pos().x<home_pos.x-1.5&&wm.ball().pos().x>wm.theirDefenseLineX())
-    //     {
-
-    //       target_point.y = wm.self().pos().y;
-    //       dash_power=ServerParam::i().maxDashPower();
-
-    //     }
-
-
-
-
-    //     if (wm.ball().pos().x<35&&wm.ball().pos().x>-wm.theirDefenseLineX())
-    //     {
-    //       target_point.y =wm.self().pos().y;
-    //       dash_power=ServerParam::i().maxDashPower();
-    //     }
-
+    if (dist_thr<1) dist_thr=0.5;
 
 
     if ( ! rcsc::Body_GoToPoint( target_point, dist_thr, dash_power,
-                                 -1.05, // speed
-                                 5, // perferd cycle
+                                 -1.0, // speed
+                                 1, // perferd cycle
                                  true, // save recovery
                                  20.0 // dir thr
                                  ).execute( agent ) )
@@ -110,27 +86,12 @@ bool shoot_area_sf_move::execute(PlayerAgent* agent)
         rcsc::Body_TurnToBall().execute(agent);
     }
 
-    //    if ( wm.self().pos().x > 35.0 )
-    //    {
-
-    //        agent->setNeckAction( new rcsc::Neck_TurnToGoalieOrScan() );
-    //    }
-    //    else
-    //    {
-
-    //        agent->setNeckAction( new rcsc::Neck_TurnToBallOrScan() );
-    //    }
+   
 
 
-    if (wm.ball().distFromSelf()>18)
-    {
-        agent->setNeckAction(new Neck_TurnToBallOrScan());
 
-    }
-    else
-    {
-        agent->setNeckAction(new Neck_TurnToBall());
-    }
+    agent->setNeckAction( new Neck_TurnToBallOrScan( 0 ) );
+    agent->setArmAction( new Arm_PointToPoint( target_point ) );
 
 
     return true;

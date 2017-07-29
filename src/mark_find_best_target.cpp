@@ -353,7 +353,7 @@ const rcsc::Vector2D  mark_find_best_target::getMarkTarget(PlayerAgent *agent, c
 
 
     
-    if (home.x<move_point.x)
+    if (home.x<move_point.x&&wm.ball().pos().x<wm.self().pos().x)
     {
        move_point.x=(mark_target_pos.x+home.x)/2;
     }

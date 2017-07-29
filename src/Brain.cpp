@@ -423,7 +423,7 @@ Brain::over36_decesion_tree(const PredictState & state,const ActionStatePair pat
     const Vector2D  currentBall=state.current_wm()->ball().pos();
 
 
-    int spent_time= 0;  /*first_action.category()==CooperativeAction::Dribble?first_action.durationStep():0;*/
+    int spent_time= first_action.category()==CooperativeAction::Dribble?first_action.durationStep():0;
 
     double  opp_dist_target_ball = FieldAnalyzer::get_opponent_dist(state,targetBall,spent_time,3);
     double  opp_dist_current_ball= FieldAnalyzer::get_opponent_dist(state,currentBall,0,3);
@@ -453,33 +453,34 @@ Brain::over36_decesion_tree(const PredictState & state,const ActionStatePair pat
 
     bool  over_defensive_line=state.ball().pos().x>state.theirDefensePlayerLineX()-1.0? true:false;
     const double targetBall_dist_goal =targetBall.dist(ServerParam::i().theirTeamGoalPos());
+    
+    //2017年 07月 29日 星期六 07:03:12 JST
 
 
-    if (safe) //0.0
-    {
+      if (safe) //0.0
+      {
 
         double  basic_safe_bonus=10;
         p+=basic_safe_bonus;
 
        return p;
+  
+      }
 
-    }
-
-    if (!safe)
-    {
+      if (!safe)
+      {
 
 
         double  basic_try_safe_bonus=bound(0.0, opp_dist_target_ball,4.0)*2.5;
 
         p+=basic_try_safe_bonus;
 
-        double  success_prob= opp_dist_target_ball<2.5? 0.0 : 1- (4-opp_dist_target_ball)/4;
-
-
 
          return p;
 
-    }
+      }
+    
+
 
 
 

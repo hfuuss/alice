@@ -80,7 +80,7 @@ Bhv_GetBall::execute( PlayerAgent * agent )
     }
        
        
-     if (self_min<=opp_min+1&&self_min<=mate_min)
+     if (self_min<=opp_min&&self_min<=mate_min)
 	  
      {
               Body_Intercept().execute( agent );
@@ -166,7 +166,7 @@ Bhv_GetBall::execute( PlayerAgent * agent )
      static rcsc::Vector2D opp_static_pos = opp;
 
 
-     if( me.dist( blockPos ) < 1.0 && targetLine.dist(me) <0.5 && myCycles <= 3 )
+     if( me.dist( blockPos ) < 1.0 && targetLine.dist(me) <0.5 && myCycles <= 2 )
      {
 
         rcsc::Body_Intercept().execute( agent );
@@ -370,14 +370,7 @@ Bhv_GetBall::simulate( const WorldModel & wm,
         *param = best;
 
     }
-    if ( ! on_block_line
-         && best.turn_ > 0 )
-    {
-        simulateNoTurn( wm, opp_trap_pos, center_pos,
-                        bounding_rect, dist_thr, save_recovery,
-                        &best );
-    }
-    
+
 
 }
 
@@ -746,6 +739,11 @@ Vector2D  Bhv_GetBall::get_block_opponent_trap_point(const WorldModel &wm)
    int opp_min = wm.interceptTable()->opponentReachCycle();
     Vector2D opp_trap_pos = wm.ball().inertiaPoint( opp_min );
    const PlayerObject * opp = wm.interceptTable()->fastestOpponent();
+   if (opp_min<=1&&opp->bodyCount()<=1)
+   {
+     opp_trap_pos=opp->inertiaPoint( 2 )
+                    + Vector2D::polar2vector( 0.4, opp->body() );
+   }
 
 
     return opp_trap_pos;

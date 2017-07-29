@@ -20,6 +20,7 @@
 #include"bhv_basic_move.h"
 #include "voron_point.h"
 #include <rcsc/common/server_param.h>
+#include <rcsc/action/arm_point_to_point.h>
 using namespace rcsc;
 
 bool offsnive_half_shoot_area_move::execute(rcsc::PlayerAgent *agent)
@@ -59,8 +60,9 @@ bool offsnive_half_shoot_area_move::execute(rcsc::PlayerAgent *agent)
 
     Vector2D home_pos=Strategy::i().getPosition(wm.self().unum());
     Vector2D target_point =get_target(agent,home_pos);
-    double dist_thr=0.5;
-
+    double dist_thr = wm.ball().distFromSelf()*0.1;
+    
+    if (dist_thr<1) dist_thr=0.5;
 
 
     if ( ! rcsc::Body_GoToPoint( target_point, dist_thr, dash_power,
@@ -76,18 +78,12 @@ bool offsnive_half_shoot_area_move::execute(rcsc::PlayerAgent *agent)
     }
 
 
+   
 
 
-    if (wm.ball().distFromSelf()>18)
-    {
-        agent->setNeckAction(new Neck_TurnToBallOrScan());
 
-    }
-    else
-    {
-        agent->setNeckAction(new Neck_TurnToBall());
-    }
-
+    agent->setNeckAction( new Neck_TurnToBallOrScan( 0 ) );
+    agent->setArmAction( new Arm_PointToPoint( target_point ) );
 
 
     return true;
