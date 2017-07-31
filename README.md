@@ -1,2 +1,2 @@
 # alice
-final rank  robocup  soccer simulate    2d   rank 7th   and   1st   place   in  evaluation challenge
+final rank  robocup  soccer simulate    2d   rank 7th   and   1st   place   in  evaluation challenge  in  Robocup 2017 
